@@ -11,14 +11,15 @@ from kubeflow_pipeline.components.select_best_model.select_best_model import sel
 from kubeflow_pipeline.components.register_model.register_model import register_model
 from kubeflow_pipeline.components.deploy_model.deploy_model import deploy_model
 
-from config import PROJECT_ID, REGION, BUCKET_NAME
+from kubeflow_pipeline.config import PROJECT_ID, REGION, BUCKET_NAME
+
  
  
 
 print('Import success')
 
 @pipeline(
-    name = 'bank-policy-prod-2',
+    name = 'bank-policy-production',
     pipeline_root = f'gs://{BUCKET_NAME}/pipeline-artifacts'
 )
 def pipeline():
