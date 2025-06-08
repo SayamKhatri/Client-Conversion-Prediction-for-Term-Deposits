@@ -14,6 +14,7 @@ def train_rf_model(
     from sklearn.ensemble import RandomForestClassifier
     import joblib
     import os
+    import pickle
     import pickletools  
 
     train_df = pd.read_csv(train_rf.path + '.csv')
@@ -23,20 +24,35 @@ def train_rf_model(
     model = RandomForestClassifier(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
 
+    # os.makedirs(model_rf.path, exist_ok=True)
+    # model_path = os.path.join(model_rf.path, 'model.joblib')
+
+
+    # joblib.dump(model, model_path, compress=0, protocol=4)
+
+
+    # with open(model_path, 'rb') as f:
+    #     header = f.read(2)
+    #     if header[:2] == b'\x80\x04':
+    #         print("✅ Pickle protocol used: 4 (Confirmed)")
+    #     else:
+    #         print(f"⚠️ Unexpected pickle header: {header}")
+
+    # print(f"✅ RF model saved at: {model_path}")
+
+    # print('✅ RF model trained and saved at:', model_rf.path)
+
+
     os.makedirs(model_rf.path, exist_ok=True)
-    model_path = os.path.join(model_rf.path, 'model.joblib')
+    path = os.path.join(model_rf.path, 'model.pkl')
 
+    # Serialize using raw pickle with protocol 4
+    with open(path, 'wb') as f:
+        pickle.dump(model, f, protocol=4)
 
-    joblib.dump(model, model_path, compress=0, protocol=4)
-
-
-    with open(model_path, 'rb') as f:
+    # Verify protocol was used
+    with open(path, 'rb') as f:
         header = f.read(2)
-        if header[:2] == b'\x80\x04':
-            print("✅ Pickle protocol used: 4 (Confirmed)")
-        else:
-            print(f"⚠️ Unexpected pickle header: {header}")
+        print("✅ Pickle header:", header)
 
-    print(f"✅ RF model saved at: {model_path}")
-
-    print('✅ RF model trained and saved at:', model_rf.path)
+    print("✅ Model saved at:", path)
