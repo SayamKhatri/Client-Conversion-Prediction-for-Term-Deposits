@@ -33,7 +33,8 @@ jobs:
           pip install pytest
 
       - name: Write GCP service account key
-        run: echo "${{ secrets.GCP_SA_KEY }}" > sa-key.json
+        run: printf '%s' "${{ secrets.GCP_SA_KEY }}" > sa-key.json
+
 
       - name: Set GOOGLE_APPLICATION_CREDENTIALS env
         run: echo "GOOGLE_APPLICATION_CREDENTIALS=$GITHUB_WORKSPACE/sa-key.json" >> $GITHUB_ENV
