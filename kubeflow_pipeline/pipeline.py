@@ -13,8 +13,6 @@ from kubeflow_pipeline.components.deploy_model.deploy_model import deploy_model
 
 from kubeflow_pipeline.config import PROJECT_ID, REGION, BUCKET_NAME
 
-
-
 @pipeline(
     name = 'bank-policy-production',
     pipeline_root = f'gs://{BUCKET_NAME}/pipeline-artifacts'
