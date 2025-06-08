@@ -3,8 +3,8 @@ from kfp.v2.dsl import Artifact, Dataset, component, Output, pipeline, Input, Mo
 
 @component(
     packages_to_install=['pandas', 'fsspec', 'gcsfs', 'scikit-learn', 'tensorflow'],
-    base_image= "python:3.10",
-    output_component_file='components/train_nn_model/train_nn_model.yml'
+    base_image= "python:3.10"
+    # output_component_file='components/train_nn_model/train_nn_model.yml'
            
 )
 def train_nn_model(

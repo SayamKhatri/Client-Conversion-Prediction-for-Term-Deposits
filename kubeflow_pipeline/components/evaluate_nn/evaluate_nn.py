@@ -3,8 +3,8 @@ from kfp.v2.dsl import Artifact, Dataset, component, Output, pipeline, Input, Mo
 
 @component(
     packages_to_install=['pandas', 'fsspec', 'gcsfs', 'scikit-learn', 'tensorflow', 'google-cloud-aiplatform'],
-    base_image= "python:3.10",
-    output_component_file='components/evaluate_nn/eval_nn_model.yml'
+    base_image= "python:3.10"
+    # output_component_file='components/evaluate_nn/eval_nn_model.yml'
            
 )
 def evaluate_nn(

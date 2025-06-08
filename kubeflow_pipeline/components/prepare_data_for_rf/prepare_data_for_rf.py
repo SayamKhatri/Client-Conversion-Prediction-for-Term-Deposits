@@ -3,8 +3,8 @@ from kfp.v2.dsl import Artifact, Dataset, component, Output, pipeline, Input, Mo
 
 @component(
     packages_to_install=['pandas', 'fsspec', 'gcsfs', 'scikit-learn'],
-    base_image= "python:3.10",
-    output_component_file= 'components/prepare_data_for_rf/prepare_data_for_rf.yml'
+    base_image= "python:3.10"
+    # output_component_file= 'components/prepare_data_for_rf/prepare_data_for_rf.yml'
 )
 
 def prepare_data_for_rf(

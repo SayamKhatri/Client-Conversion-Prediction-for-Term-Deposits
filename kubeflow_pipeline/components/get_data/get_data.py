@@ -3,8 +3,8 @@ from kfp.v2.dsl import Artifact, Dataset, component, Output, pipeline, Input, Mo
 
 @component(
     packages_to_install=['pandas', 'fsspec', 'gcsfs'],
-    base_image= "python:3.10",
-    output_component_file= 'components/get_data/getdata.yml'
+    base_image= "python:3.10"
+    # output_component_file= 'components/get_data/getdata.yml'
 
 )
 def get_data(
