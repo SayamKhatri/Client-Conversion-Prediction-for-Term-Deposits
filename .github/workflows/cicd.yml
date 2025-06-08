@@ -32,8 +32,9 @@ jobs:
           pip install -r kubeflow_pipeline/requirements.txt
           pip install pytest
 
-      - name: Write GCP service account key
-        run: printf '%s' "${{ secrets.GCP_SA_KEY }}" > sa-key.json
+      - name: Decode GCP service account key
+        run: echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode > sa-key.json
+      
 
 
       - name: Set GOOGLE_APPLICATION_CREDENTIALS env

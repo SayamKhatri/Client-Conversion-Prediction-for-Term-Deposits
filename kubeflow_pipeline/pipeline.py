@@ -1,4 +1,5 @@
 from kfp.v2.dsl import pipeline
+
 from kubeflow_pipeline.components.get_data.get_data import get_data
 from kubeflow_pipeline.components.prepare_data_for_rf.prepare_data_for_rf import prepare_data_for_rf
 from kubeflow_pipeline.components.prepare_data_for_nn.prepare_data_for_nn import prepare_data_for_nn
