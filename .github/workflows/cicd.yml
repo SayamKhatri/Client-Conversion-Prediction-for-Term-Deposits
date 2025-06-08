@@ -38,6 +38,9 @@ jobs:
       - name: Set GOOGLE_APPLICATION_CREDENTIALS env
         run: echo "GOOGLE_APPLICATION_CREDENTIALS=$GITHUB_WORKSPACE/sa-key.json" >> $GITHUB_ENV
 
+      - name: Set PYTHONPATH  
+        run: echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
       - name: Run tests
         run: pytest tests/
 
