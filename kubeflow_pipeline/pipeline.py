@@ -27,16 +27,16 @@ def pipeline():
         model_rf=train_rf_model_task.outputs['model_rf'],
         project_id=PROJECT_ID,
         region=REGION,
-        experiment_name="exprandomforest5prod",
-        run_name="randomeforestrun5prod"
+        experiment_name="exprandomforest10prod",
+        run_name="randomeforestrun10prod"
     )
     eval_nn_task = evaluate_nn(
         test_nn=prepare_nn_task.outputs['test_nn'],
         model_nn=train_nn_model_task.outputs['model_nn'],
         project_id=PROJECT_ID,
         region=REGION,
-        experiment_name="expneuralnetwork5prod",
-        run_name="neuralnetworrun5prod"
+        experiment_name="expneuralnetwork10prod",
+        run_name="neuralnetworrun10prod"
     )
     best_model_selection_task = select_best_model(
         metrics_rf=eval_rf_task.outputs['metrics_rf'],
