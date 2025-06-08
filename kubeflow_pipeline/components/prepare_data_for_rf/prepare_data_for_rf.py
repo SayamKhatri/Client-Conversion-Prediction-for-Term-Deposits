@@ -2,7 +2,7 @@ from kfp.v2 import dsl
 from kfp.v2.dsl import Artifact, Dataset, component, Output, pipeline, Input, Model
 
 @component(
-    packages_to_install=['pandas', 'fsspec', 'gcsfs', 'scikit-learn'],
+    packages_to_install=['pandas', 'fsspec', 'gcsfs', 'scikit-learn==1.3.2','numpy==1.24.3'],
     base_image= "python:3.10"
     # output_component_file= 'components/prepare_data_for_rf/prepare_data_for_rf.yml'
 )
