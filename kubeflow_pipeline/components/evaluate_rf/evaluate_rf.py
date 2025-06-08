@@ -24,12 +24,17 @@ def evaluate_rf(
   import os 
   import json
   from google.cloud import aiplatform
+  import pickle
 
   test_df = pd.read_csv(test_rf.path + '.csv')
   X_test = test_df.drop('y', axis = 1)
   y_test = test_df['y']
 
-  model = joblib.load(os.path.join(model_rf.path, 'model.joblib'))
+  with open(os.path.join(model_rf.path, 'model.pkl'), 'rb') as f:
+    model = pickle.load(f)
+
+
+#   model = joblib.load(os.path.join(model_rf.path, 'model.joblib'))
   y_pred = model.predict(X_test)
   y_proba = model.predict_proba(X_test)[:, 1]
 
