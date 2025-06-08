@@ -2,7 +2,7 @@ from kfp.v2 import dsl
 from kfp.v2.dsl import Artifact, Dataset, component, Output, pipeline, Input, Model
 
 @component(
-    packages_to_install=['pandas', 'fsspec', 'gcsfs', 'scikit-learn', 'joblib'],
+    packages_to_install=['pandas', 'fsspec', 'gcsfs', 'scikit-learn==1.3.2', 'joblib', 'numpy==1.24.3'],
     base_image= "python:3.10"
     # output_component_file='train_rf_model.yml'
 )

@@ -12,7 +12,7 @@ from kubeflow_pipeline.components.deploy_model.deploy_model import deploy_model
 from kubeflow_pipeline.config import PROJECT_ID, REGION, BUCKET_NAME
 
 @pipeline(
-    name = 'bank-policy-production-f',
+    name = 'bank-policy-production-final',
     pipeline_root = f'gs://{BUCKET_NAME}/pipeline-artifacts'
 )
 def pipeline():
@@ -26,16 +26,16 @@ def pipeline():
         model_rf=train_rf_model_task.outputs['model_rf'],
         project_id=PROJECT_ID,
         region=REGION,
-        experiment_name="exprandomforest10prod1",
-        run_name="randomeforestrun10prod1"
+        experiment_name="exprandomforestpfinal",
+        run_name="randomeforestrunpfinal"
     )
     eval_nn_task = evaluate_nn(
         test_nn=prepare_nn_task.outputs['test_nn'],
         model_nn=train_nn_model_task.outputs['model_nn'],
         project_id=PROJECT_ID,
         region=REGION,
-        experiment_name="expneuralnetwork10prod1",
-        run_name="neuralnetworrun10prod1"
+        experiment_name="expneuralnetworkpfinal",
+        run_name="neuralnetworrunpfinal"
     )
     best_model_selection_task = select_best_model(
         metrics_rf=eval_rf_task.outputs['metrics_rf'],
@@ -56,7 +56,7 @@ def pipeline():
         region=REGION,
         endpoint_display_name="bank-model-endpoint",
         deployed_model_display_name="bank-model-deployed",
-        machine_type="n1-standard-4"
+        machine_type="n1-standard-8"
     )
 
 if __name__ == '__main__':

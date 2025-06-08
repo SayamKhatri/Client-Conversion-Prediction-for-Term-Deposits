@@ -12,7 +12,7 @@ def deploy_model(
     endpoint_uri: Output[Artifact],
     endpoint_display_name: str = "bank-model-endpoint",
     deployed_model_display_name: str = "bank-model-deployed",
-    machine_type: str = "n1-standard-4"
+    machine_type: str = "n1-standard-8"
 
 ):
     import os
