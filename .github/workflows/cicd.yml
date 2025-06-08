@@ -1,0 +1,55 @@
+name: Kubeflow Pipeline CI/CD
+
+on:
+  push:
+    paths:
+      - 'kubeflow_pipeline/pipeline.py'
+  pull_request:
+    paths:
+      - 'kubeflow_pipeline/pipeline.py'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      PROJECT_ID: ${{ secrets.PROJECT_ID }}
+      REGION: ${{ secrets.REGION }}
+      BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r kubeflow_pipeline/requirements.txt
+          pip install pytest
+
+      - name: Write GCP service account key
+        run: echo "${{ secrets.GCP_SA_KEY }}" > sa-key.json
+
+      - name: Set GOOGLE_APPLICATION_CREDENTIALS env
+        run: echo "GOOGLE_APPLICATION_CREDENTIALS=$GITHUB_WORKSPACE/sa-key.json" >> $GITHUB_ENV
+
+      - name: Run tests
+        run: pytest tests/
+
+      - name: Lint code
+        run: |
+          pip install flake8
+          flake8 kubeflow_pipeline/
+
+      - name: Compile Kubeflow pipeline
+        run: |
+          python kubeflow_pipeline/pipeline.py
+
+
+      - name: Remove service account key
+        run: rm sa-key.json

@@ -9,11 +9,8 @@ from components.evaluate_nn.evaluate_nn import evaluate_nn
 from components.select_best_model.select_best_model import select_best_model
 from components.register_model.register_model import register_model
 from components.deploy_model.deploy_model import deploy_model
-# from config import PROJECT_ID, REGION, BUCKET_NAME
+from config import PROJECT_ID, REGION, BUCKET_NAME
 
-PROJECT_ID = 'promptbud'
-REGION = 'us-east1'
-BUCKET_NAME = 'bank-marketing-kfp-sayam'
 
 print('Import success')
 
