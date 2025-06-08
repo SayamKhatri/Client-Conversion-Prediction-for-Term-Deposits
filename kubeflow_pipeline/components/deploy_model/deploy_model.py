@@ -3,7 +3,7 @@ from kfp.v2.dsl import component, Input, Output, Artifact
 @component(
     packages_to_install=['google-cloud-aiplatform'],
     base_image="python:3.10",
-    output_component_file="deploy_model.yaml"
+    output_component_file="components/deploy_model/deploy_model.yaml"
 )
 def deploy_model(
     registered_model: Input[Artifact],

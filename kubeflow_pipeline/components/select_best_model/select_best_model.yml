@@ -1,0 +1,212 @@
+# PIPELINE DEFINITION
+# Name: select-best-model
+# Inputs:
+#    deploy_thresholds: dict [Default: {'accuracy': 0.7, 'auc': 0.7}]
+#    metrics_nn: system.Artifact
+#    metrics_rf: system.Artifact
+#    model_nn: system.Model
+#    model_rf: system.Model
+#    primary_metric: str [Default: 'auc']
+# Outputs:
+#    best_model: system.Artifact
+#    best_model_framework: system.Artifact
+#    best_model_path: system.Artifact
+#    should_deploy: system.Artifact
+components:
+  comp-select-best-model:
+    executorLabel: exec-select-best-model
+    inputDefinitions:
+      artifacts:
+        metrics_nn:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        metrics_rf:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        model_nn:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+        model_rf:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+      parameters:
+        deploy_thresholds:
+          defaultValue:
+            accuracy: 0.7
+            auc: 0.7
+          isOptional: true
+          parameterType: STRUCT
+        primary_metric:
+          defaultValue: auc
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        best_model:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        best_model_framework:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        best_model_path:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        should_deploy:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-select-best-model:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - select_best_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.10.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'fsspec' 'gcsfs'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef select_best_model(\n    metrics_rf: Input[Artifact],\n    metrics_nn:\
+          \ Input[Artifact],\n    model_rf: Input[Model],\n    model_nn: Input[Model],\n\
+          \    best_model: Output[Artifact],\n    should_deploy: Output[Artifact],\n\
+          \    best_model_path: Output[Artifact],\n    best_model_framework: Output[Artifact],\n\
+          \    deploy_thresholds: dict = {\n        \"auc\": 0.70,\n        \"accuracy\"\
+          : 0.70\n    },\n    primary_metric: str = \"auc\"\n) -> None:\n    import\
+          \ os, json\n\n    with open(os.path.join(metrics_rf.path, 'metrics_rf.json'))\
+          \ as f:\n        rf_metrics = json.load(f)\n    with open(os.path.join(metrics_nn.path,\
+          \ 'metrics_nn.json')) as f:\n        nn_metrics = json.load(f)\n\n    best\
+          \ = \"rf\" if rf_metrics[primary_metric] >= nn_metrics[primary_metric] else\
+          \ \"nn\"\n    best_metrics = rf_metrics if best == \"rf\" else nn_metrics\n\
+          \n    meets_thresholds = all(\n        best_metrics.get(metric, 0) >= threshold\n\
+          \        for metric, threshold in deploy_thresholds.items()\n    )\n\n \
+          \   os.makedirs(best_model.path, exist_ok=True)\n    with open(os.path.join(best_model.path,\
+          \ 'best_model.txt'), 'w') as f:\n        f.write(best)\n\n    os.makedirs(should_deploy.path,\
+          \ exist_ok=True)\n    with open(os.path.join(should_deploy.path, 'deploy.txt'),\
+          \ 'w') as f:\n        f.write(\"True\" if meets_thresholds else \"False\"\
+          )\n\n    os.makedirs(best_model_path.path, exist_ok=True)\n    best_path\
+          \ = model_rf.path if best == \"rf\" else model_nn.path\n    with open(os.path.join(best_model_path.path,\
+          \ 'path.txt'), 'w') as f:\n        f.write(best_path)\n\n    os.makedirs(best_model_framework.path,\
+          \ exist_ok=True)\n    with open(os.path.join(best_model_framework.path,\
+          \ 'framework.txt'), 'w') as f:\n        f.write(\"sklearn\" if best == \"\
+          rf\" else \"tensorflow\")\n\n    print(\"Best model:\", best)\n    print(\"\
+          Path:\", best_path)\n    print(\"Should deploy:\", meets_thresholds)\n\n"
+        image: python:3.10
+pipelineInfo:
+  name: select-best-model
+root:
+  dag:
+    outputs:
+      artifacts:
+        best_model:
+          artifactSelectors:
+          - outputArtifactKey: best_model
+            producerSubtask: select-best-model
+        best_model_framework:
+          artifactSelectors:
+          - outputArtifactKey: best_model_framework
+            producerSubtask: select-best-model
+        best_model_path:
+          artifactSelectors:
+          - outputArtifactKey: best_model_path
+            producerSubtask: select-best-model
+        should_deploy:
+          artifactSelectors:
+          - outputArtifactKey: should_deploy
+            producerSubtask: select-best-model
+    tasks:
+      select-best-model:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-select-best-model
+        inputs:
+          artifacts:
+            metrics_nn:
+              componentInputArtifact: metrics_nn
+            metrics_rf:
+              componentInputArtifact: metrics_rf
+            model_nn:
+              componentInputArtifact: model_nn
+            model_rf:
+              componentInputArtifact: model_rf
+          parameters:
+            deploy_thresholds:
+              componentInputParameter: deploy_thresholds
+            primary_metric:
+              componentInputParameter: primary_metric
+        taskInfo:
+          name: select-best-model
+  inputDefinitions:
+    artifacts:
+      metrics_nn:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+      metrics_rf:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+      model_nn:
+        artifactType:
+          schemaTitle: system.Model
+          schemaVersion: 0.0.1
+      model_rf:
+        artifactType:
+          schemaTitle: system.Model
+          schemaVersion: 0.0.1
+    parameters:
+      deploy_thresholds:
+        defaultValue:
+          accuracy: 0.7
+          auc: 0.7
+        isOptional: true
+        parameterType: STRUCT
+      primary_metric:
+        defaultValue: auc
+        isOptional: true
+        parameterType: STRING
+  outputDefinitions:
+    artifacts:
+      best_model:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+      best_model_framework:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+      best_model_path:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+      should_deploy:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.10.0

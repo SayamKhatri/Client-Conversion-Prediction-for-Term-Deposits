@@ -1,0 +1,154 @@
+# PIPELINE DEFINITION
+# Name: evaluate-nn
+# Inputs:
+#    experiment_name: str
+#    model_nn: system.Model
+#    project_id: str
+#    region: str
+#    run_name: str
+#    test_nn: system.Dataset
+# Outputs:
+#    metrics_nn: system.Artifact
+components:
+  comp-evaluate-nn:
+    executorLabel: exec-evaluate-nn
+    inputDefinitions:
+      artifacts:
+        model_nn:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+        test_nn:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        experiment_name:
+          parameterType: STRING
+        project_id:
+          parameterType: STRING
+        region:
+          parameterType: STRING
+        run_name:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        metrics_nn:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-evaluate-nn:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - evaluate_nn
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.10.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'pandas' 'fsspec'\
+          \ 'gcsfs' 'scikit-learn' 'tensorflow' 'google-cloud-aiplatform' && \"$0\"\
+          \ \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef evaluate_nn(\n    test_nn : Input[Dataset],\n    model_nn : Input[Model],\n\
+          \    metrics_nn : Output[Artifact],\n    project_id: str,\n    region: str,\n\
+          \    experiment_name: str,\n    run_name: str \n\n)->None:\n\n  import pandas\
+          \ as pd \n  import tensorflow as tf \n  from sklearn.metrics import accuracy_score,\
+          \ precision_score, recall_score, roc_auc_score\n  import os \n  import json\n\
+          \  from google.cloud import aiplatform\n  from tensorflow.keras import Sequential\n\
+          \  from tensorflow.keras.layers import TFSMLayer\n\n  test_df = pd.read_csv(test_nn.path\
+          \ + '.csv')\n  X_test = test_df.drop('y', axis=1)\n  y_test = test_df['y']\n\
+          \n\n\n\n  X_tensor = tf.convert_to_tensor(X_test.values, dtype=tf.float32)\n\
+          \n  model = TFSMLayer(model_nn.path, call_endpoint=\"serving_default\")\n\
+          \n\n  raw_output = model(X_tensor)\n  if isinstance(raw_output, dict):\n\
+          \      y_proba = list(raw_output.values())[0].numpy().flatten()\n  else:\n\
+          \      y_proba = raw_output.numpy().flatten()\n\n\n  y_pred = (y_proba >\
+          \ 0.5).astype(int)\n  print(\" \u2705 Precition Done\")\n\n  metrics = {\n\
+          \      \"accuracy\": accuracy_score(y_test, y_pred),\n      \"precision\"\
+          : precision_score(y_test, y_pred),\n      \"recall\": recall_score(y_test,\
+          \ y_pred),\n      \"auc\": roc_auc_score(y_test, y_proba)\n  }\n\n\n  os.makedirs(metrics_nn.path,\
+          \ exist_ok=True)\n  with open(os.path.join(metrics_nn.path, 'metrics_nn.json'),\
+          \ 'w') as f:\n      json.dump(metrics, f, indent=4)\n\n\n  aiplatform.init(project=project_id,\
+          \ location=region, experiment=experiment_name)\n\n  with aiplatform.start_run(run=run_name)\
+          \ as run:\n\n      run.log_params({\n          'Model_Type': 'NeuralNetwork',\n\
+          \          'Source': 'Kubeflow'\n      })\n\n      run.log_metrics(metrics)\n\
+          \n\n\n  print(\"Neural Network model evaluation complete.\")\n  print(\"\
+          Metrics:\", metrics)\n\n"
+        image: python:3.10
+pipelineInfo:
+  name: evaluate-nn
+root:
+  dag:
+    outputs:
+      artifacts:
+        metrics_nn:
+          artifactSelectors:
+          - outputArtifactKey: metrics_nn
+            producerSubtask: evaluate-nn
+    tasks:
+      evaluate-nn:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-evaluate-nn
+        inputs:
+          artifacts:
+            model_nn:
+              componentInputArtifact: model_nn
+            test_nn:
+              componentInputArtifact: test_nn
+          parameters:
+            experiment_name:
+              componentInputParameter: experiment_name
+            project_id:
+              componentInputParameter: project_id
+            region:
+              componentInputParameter: region
+            run_name:
+              componentInputParameter: run_name
+        taskInfo:
+          name: evaluate-nn
+  inputDefinitions:
+    artifacts:
+      model_nn:
+        artifactType:
+          schemaTitle: system.Model
+          schemaVersion: 0.0.1
+      test_nn:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+    parameters:
+      experiment_name:
+        parameterType: STRING
+      project_id:
+        parameterType: STRING
+      region:
+        parameterType: STRING
+      run_name:
+        parameterType: STRING
+  outputDefinitions:
+    artifacts:
+      metrics_nn:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.10.0

@@ -1,0 +1,88 @@
+# PIPELINE DEFINITION
+# Name: get-data
+# Inputs:
+#    raw_gcs_url: str
+# Outputs:
+#    raw_dataset: system.Dataset
+components:
+  comp-get-data:
+    executorLabel: exec-get-data
+    inputDefinitions:
+      parameters:
+        raw_gcs_url:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        raw_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-get-data:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_data
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.10.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'pandas' 'fsspec'\
+          \ 'gcsfs' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_data(\n    raw_gcs_url : str,\n    raw_dataset : Output[Dataset]\n\
+          ) -> None:\n\n  import pandas as pd \n\n  df = pd.read_csv(raw_gcs_url,\
+          \ sep=';')\n  df['y'] = df['y'].map({'no': 0 , 'yes': 1})\n\n\n  df.to_csv(raw_dataset.path\
+          \ + '.csv', index=False)\n  print('Raw_Dataset_Saved at:',raw_dataset.path\
+          \ + '.csv')\n\n"
+        image: python:3.10
+pipelineInfo:
+  name: get-data
+root:
+  dag:
+    outputs:
+      artifacts:
+        raw_dataset:
+          artifactSelectors:
+          - outputArtifactKey: raw_dataset
+            producerSubtask: get-data
+    tasks:
+      get-data:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-get-data
+        inputs:
+          parameters:
+            raw_gcs_url:
+              componentInputParameter: raw_gcs_url
+        taskInfo:
+          name: get-data
+  inputDefinitions:
+    parameters:
+      raw_gcs_url:
+        parameterType: STRING
+  outputDefinitions:
+    artifacts:
+      raw_dataset:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.10.0

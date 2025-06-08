@@ -1,0 +1,129 @@
+# PIPELINE DEFINITION
+# Name: prepare-data-for-nn
+# Inputs:
+#    raw_dataset: system.Dataset
+# Outputs:
+#    scaler_obj: system.Artifact
+#    test_nn: system.Dataset
+#    train_nn: system.Dataset
+components:
+  comp-prepare-data-for-nn:
+    executorLabel: exec-prepare-data-for-nn
+    inputDefinitions:
+      artifacts:
+        raw_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        scaler_obj:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+        test_nn:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        train_nn:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-prepare-data-for-nn:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - prepare_data_for_nn
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.10.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'pandas' 'fsspec'\
+          \ 'gcsfs' 'scikit-learn' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef prepare_data_for_nn(\n    raw_dataset : Input[Dataset],\n   \
+          \ train_nn : Output[Dataset],\n    test_nn : Output[Dataset],\n    scaler_obj\
+          \ : Output[Artifact]\n\n)-> None:\n\n  import pandas as pd \n  from sklearn.preprocessing\
+          \ import StandardScaler\n  from sklearn.model_selection import train_test_split\n\
+          \  import pickle\n\n  df = pd.read_csv(raw_dataset.path + '.csv')\n\n  if\
+          \ \"duration\" in df.columns:\n      df.drop(columns=[\"duration\"], inplace=True)\n\
+          \n  categorical_cols = ['job', 'marital', 'education', 'default', 'housing',\
+          \ 'loan','contact', 'month', 'poutcome']\n  numerical_cols = ['age', 'balance',\
+          \ 'day', 'campaign', 'pdays', 'previous']\n\n  df = pd.get_dummies(df, columns=categorical_cols,\
+          \ drop_first=True)\n  df = df.astype('float32')\n  df['y'] = df['y'].astype(int)\n\
+          \n\n  scaler = StandardScaler()\n  df[numerical_cols] = scaler.fit_transform(df[numerical_cols])\n\
+          \n  train_df, test_df = train_test_split(df, test_size=0.2, random_state=42)\n\
+          \n  train_df.to_csv(train_nn.path + '.csv', index=False)\n  test_df.to_csv(test_nn.path\
+          \ + '.csv', index=False)\n\n  with open(scaler_obj.path + '.pkl', 'wb')\
+          \ as f:\n    pickle.dump(scaler, f)\n\n  print('NN data ready')\n  print('Scaler\
+          \ obj saved at:', scaler_obj.path + '.pkl')\n\n"
+        image: python:3.10
+pipelineInfo:
+  name: prepare-data-for-nn
+root:
+  dag:
+    outputs:
+      artifacts:
+        scaler_obj:
+          artifactSelectors:
+          - outputArtifactKey: scaler_obj
+            producerSubtask: prepare-data-for-nn
+        test_nn:
+          artifactSelectors:
+          - outputArtifactKey: test_nn
+            producerSubtask: prepare-data-for-nn
+        train_nn:
+          artifactSelectors:
+          - outputArtifactKey: train_nn
+            producerSubtask: prepare-data-for-nn
+    tasks:
+      prepare-data-for-nn:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-prepare-data-for-nn
+        inputs:
+          artifacts:
+            raw_dataset:
+              componentInputArtifact: raw_dataset
+        taskInfo:
+          name: prepare-data-for-nn
+  inputDefinitions:
+    artifacts:
+      raw_dataset:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+  outputDefinitions:
+    artifacts:
+      scaler_obj:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+      test_nn:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+      train_nn:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.10.0

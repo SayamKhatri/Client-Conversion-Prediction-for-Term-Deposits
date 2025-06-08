@@ -4,7 +4,7 @@ from kfp.v2.dsl import Artifact, Dataset, component, Output, pipeline, Input, Mo
 @component(
     packages_to_install=['pandas', 'fsspec', 'gcsfs', 'scikit-learn', 'joblib', 'google-cloud-aiplatform'],
     base_image= "python:3.10",
-    output_component_file='Eval_rf_model.yml'
+    output_component_file='components/evaluate_rf/Eval_rf_model.yml'
            
 )
 def evaluate_rf(

@@ -1,0 +1,149 @@
+# PIPELINE DEFINITION
+# Name: evaluate-rf
+# Inputs:
+#    experiment_name: str
+#    model_rf: system.Model
+#    project_id: str
+#    region: str
+#    run_name: str
+#    test_rf: system.Dataset
+# Outputs:
+#    metrics_rf: system.Artifact
+components:
+  comp-evaluate-rf:
+    executorLabel: exec-evaluate-rf
+    inputDefinitions:
+      artifacts:
+        model_rf:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+        test_rf:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        experiment_name:
+          parameterType: STRING
+        project_id:
+          parameterType: STRING
+        region:
+          parameterType: STRING
+        run_name:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        metrics_rf:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-evaluate-rf:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - evaluate_rf
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.10.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'pandas' 'fsspec'\
+          \ 'gcsfs' 'scikit-learn' 'joblib' 'google-cloud-aiplatform' && \"$0\" \"\
+          $@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef evaluate_rf(\n    test_rf : Input[Dataset],\n    model_rf : Input[Model],\n\
+          \    metrics_rf : Output[Artifact],\n    project_id: str,\n    region: str,\n\
+          \    experiment_name: str,\n    run_name : str\n\n)->None:\n\n  import pandas\
+          \ as pd \n  from sklearn.metrics import accuracy_score, precision_score,\
+          \ recall_score, roc_auc_score\n  import joblib\n  import os \n  import json\n\
+          \  from google.cloud import aiplatform\n\n  test_df = pd.read_csv(test_rf.path\
+          \ + '.csv')\n  X_test = test_df.drop('y', axis = 1)\n  y_test = test_df['y']\n\
+          \n  model = joblib.load(os.path.join(model_rf.path, 'model.joblib'))\n \
+          \ y_pred = model.predict(X_test)\n  y_proba = model.predict_proba(X_test)[:,\
+          \ 1]\n\n\n  metrics = {\n      \"accuracy\": accuracy_score(y_test, y_pred),\n\
+          \      \"precision\": precision_score(y_test, y_pred),\n      \"recall\"\
+          : recall_score(y_test, y_pred),\n      \"auc\": roc_auc_score(y_test, y_proba)\n\
+          \  }\n\n  os.makedirs(metrics_rf.path, exist_ok=True)\n  with open(os.path.join(metrics_rf.path,\
+          \ 'metrics_rf.json'), 'w') as f:\n      json.dump(metrics, f, indent=4)\n\
+          \n  print(\"Random Forest model evaluation complete.\")\n  print(\"Metrics:\"\
+          , metrics)\n\n\n  aiplatform.init(project=project_id, location=region, experiment=experiment_name)\n\
+          \n  with aiplatform.start_run(run=run_name) as run:\n\n      run.log_params({\n\
+          \          'Model_Type': 'RandomForest',\n          'Source': 'Kubeflow'\n\
+          \      })\n\n      run.log_metrics(metrics)\n\n"
+        image: python:3.10
+pipelineInfo:
+  name: evaluate-rf
+root:
+  dag:
+    outputs:
+      artifacts:
+        metrics_rf:
+          artifactSelectors:
+          - outputArtifactKey: metrics_rf
+            producerSubtask: evaluate-rf
+    tasks:
+      evaluate-rf:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-evaluate-rf
+        inputs:
+          artifacts:
+            model_rf:
+              componentInputArtifact: model_rf
+            test_rf:
+              componentInputArtifact: test_rf
+          parameters:
+            experiment_name:
+              componentInputParameter: experiment_name
+            project_id:
+              componentInputParameter: project_id
+            region:
+              componentInputParameter: region
+            run_name:
+              componentInputParameter: run_name
+        taskInfo:
+          name: evaluate-rf
+  inputDefinitions:
+    artifacts:
+      model_rf:
+        artifactType:
+          schemaTitle: system.Model
+          schemaVersion: 0.0.1
+      test_rf:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+    parameters:
+      experiment_name:
+        parameterType: STRING
+      project_id:
+        parameterType: STRING
+      region:
+        parameterType: STRING
+      run_name:
+        parameterType: STRING
+  outputDefinitions:
+    artifacts:
+      metrics_rf:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.10.0

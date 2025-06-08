@@ -4,7 +4,7 @@ from kfp.v2.dsl import Artifact, Dataset, component, Output, pipeline, Input, Mo
 @component(
     packages_to_install=['fsspec', 'gcsfs'],
     base_image='python:3.10',
-    output_component_file='select_best_model.yml'
+    output_component_file='components/select_best_model/select_best_model.yml'
 )
 def select_best_model(
     metrics_rf: Input[Artifact],

@@ -1,0 +1,96 @@
+# PIPELINE DEFINITION
+# Name: train-rf-model
+# Inputs:
+#    train_rf: system.Dataset
+# Outputs:
+#    model_rf: system.Model
+components:
+  comp-train-rf-model:
+    executorLabel: exec-train-rf-model
+    inputDefinitions:
+      artifacts:
+        train_rf:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        model_rf:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-train-rf-model:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - train_rf_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.10.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'pandas' 'fsspec'\
+          \ 'gcsfs' 'scikit-learn' 'joblib' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef train_rf_model(\n    train_rf : Input[Dataset],\n    model_rf\
+          \ : Output[Model]\n\n)-> None:\n  import pandas as pd \n  from sklearn.ensemble\
+          \ import RandomForestClassifier\n  import joblib\n  import os\n\n  train_df\
+          \ = pd.read_csv(train_rf.path + '.csv')\n  X_train = train_df.drop('y',\
+          \ axis=1)\n  y_train = train_df['y']\n\n\n  model = RandomForestClassifier(n_estimators=100,random_state=42)\n\
+          \  model.fit(X_train, y_train)\n\n  os.makedirs(model_rf.path, exist_ok=True)\n\
+          \n\n  joblib.dump(\n    model, \n    os.path.join(model_rf.path, 'model.joblib'),\n\
+          \    protocol=4  \n  )\n\n  print('RF model trained and saved at:', model_rf.path)\n\
+          \n"
+        image: python:3.10
+pipelineInfo:
+  name: train-rf-model
+root:
+  dag:
+    outputs:
+      artifacts:
+        model_rf:
+          artifactSelectors:
+          - outputArtifactKey: model_rf
+            producerSubtask: train-rf-model
+    tasks:
+      train-rf-model:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-train-rf-model
+        inputs:
+          artifacts:
+            train_rf:
+              componentInputArtifact: train_rf
+        taskInfo:
+          name: train-rf-model
+  inputDefinitions:
+    artifacts:
+      train_rf:
+        artifactType:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+  outputDefinitions:
+    artifacts:
+      model_rf:
+        artifactType:
+          schemaTitle: system.Model
+          schemaVersion: 0.0.1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.10.0

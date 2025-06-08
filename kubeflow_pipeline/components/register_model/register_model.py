@@ -4,7 +4,7 @@ from kfp.v2.dsl import Artifact, Dataset, component, Output, pipeline, Input, Mo
 @component(
     packages_to_install=['google-cloud-aiplatform', 'fsspec', 'gcsfs'],
     base_image="python:3.10",
-    output_component_file="register_model.yml"
+    output_component_file="components/register_model/register_model.yml"
 )
 
 
