@@ -65,6 +65,7 @@ if __name__ == '__main__':
         pipeline_func=pipeline,
         package_path='bank_pipeline.json'
     )
+    
 
     from google.cloud import aiplatform
     aiplatform.init(project=PROJECT_ID, location=REGION, staging_bucket=BUCKET_NAME)

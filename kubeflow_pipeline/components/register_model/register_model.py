@@ -50,7 +50,7 @@ def register_model(
       artifact_uri = model_dir,
 
       serving_container_image_uri=(
-          "us-docker.pkg.dev/vertex-ai/prediction/sklearn-cpu.1-0:latest"
+          "us-docker.pkg.dev/vertex-ai/prediction/sklearn-cpu.1-3:latest"
           if framework == "sklearn" else
           "us-docker.pkg.dev/vertex-ai/prediction/tf-cpu.2-11:latest"
       )
