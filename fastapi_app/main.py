@@ -72,3 +72,4 @@ async def batch_predict(file: UploadFile = File(...)):
         return {"predictions": predictions}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
