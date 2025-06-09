@@ -44,4 +44,4 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --service-account $SERVICE_ACCOUNT \
-            --set-env-vars PROJECT_ID=$PROJECT_ID,ENDPOINT_ID=$ENDPOINT_ID,REGION=$REGION,BUCKET_NAME=$BUCKET_NAME,LABEL_ENCODER_PATH=$LABEL_ENCODER_PATH
+            --set-env-vars "PROJECT_ID=$PROJECT_ID,ENDPOINT_ID=$ENDPOINT_ID,REGION=$REGION,BUCKET_NAME=$BUCKET_NAME,LABEL_ENCODER_PATH=$LABEL_ENCODER_PATH"
