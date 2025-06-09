@@ -50,6 +50,9 @@ def preprocess_input(data: List[PredictionInput]) -> List[List[float]]:
     feature_order = ['age', 'job', 'marital', 'education', 'default', 'balance', 'housing', 'loan', 'contact', 'day', 'month', 'campaign', 'pdays', 'previous', 'poutcome']
     return df[feature_order].values.tolist()
 
+
+# Endpoints 
+
 @app.post("/predict")
 async def predict(inputs: List[PredictionInput]):
     try:
@@ -59,6 +62,7 @@ async def predict(inputs: List[PredictionInput]):
         return {"predictions": predictions}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/batch-predict")
 async def batch_predict(file: UploadFile = File(...)):
