@@ -52,7 +52,6 @@ def preprocess_input(data: List[PredictionInput]) -> List[List[float]]:
 
 
 # Endpoints 
-
 @app.post("/predict")
 async def predict(inputs: List[PredictionInput]):
     try:
