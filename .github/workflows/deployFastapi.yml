@@ -1,0 +1,47 @@
+name: Deploy to Cloud Run
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'fastapi_app/main.py'  
+env:
+  PROJECT_ID: ${{ secrets.PROJECT_ID }}
+  ENDPOINT_ID: ${{ secrets.ENDPOINT_ID }}
+  REGION: ${{ secrets.REGION }}
+  BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
+  LABEL_ENCODER_PATH: ${{ secrets.LABEL_ENCODER_PATH }}
+  SERVICE_ACCOUNT: ${{ secrets.SERVICE_ACCOUNT }}
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker gcr.io
+
+      - name: Build and push Docker image
+        run: |
+          cd fastapi_app  # Navigate to fastapi_app where Dockerfile is
+          docker build -t gcr.io/$PROJECT_ID/fastapi-predict:$GITHUB_SHA .
+          docker push gcr.io/$PROJECT_ID/fastapi-predict:$GITHUB_SHA
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy fastapi-predict \
+            --image gcr.io/$PROJECT_ID/fastapi-predict:$GITHUB_SHA \
+            --region $REGION \
+            --platform managed \
+            --allow-unauthenticated \
+            --service-account $SERVICE_ACCOUNT \
+            --set-env-vars PROJECT_ID=$PROJECT_ID,ENDPOINT_ID=$ENDPOINT_ID,REGION=$REGION,BUCKET_NAME=$BUCKET_NAME,LABEL_ENCODER_PATH=$LABEL_ENCODER_PATH
