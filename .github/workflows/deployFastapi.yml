@@ -38,10 +38,17 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
+          echo "LABEL_ENCODER_PATH is: $LABEL_ENCODER_PATH"
           gcloud run deploy fastapi-predict \
             --image gcr.io/$PROJECT_ID/fastapi-predict:$GITHUB_SHA \
             --region $REGION \
             --platform managed \
             --allow-unauthenticated \
             --service-account $SERVICE_ACCOUNT \
-            --set-env-vars "PROJECT_ID=$PROJECT_ID,ENDPOINT_ID=$ENDPOINT_ID,REGION=$REGION,BUCKET_NAME=$BUCKET_NAME,LABEL_ENCODER_PATH=$LABEL_ENCODER_PATH"
+            --set-env-vars PROJECT_ID=${PROJECT_ID} \
+               ,ENDPOINT_ID=${ENDPOINT_ID} \
+               ,REGION=${REGION} \
+               ,BUCKET_NAME=${BUCKET_NAME} \
+               ,LABEL_ENCODER_PATH=${LABEL_ENCODER_PATH}
+
+            
