@@ -17,7 +17,6 @@ LABEL_ENCODER_PATH = os.environ['LABEL_ENCODER_PATH']
 
 aiplatform.init(project=PROJECT_ID, location=REGION)
 endpoint = aiplatform.Endpoint(ENDPOINT_ID)
-
 storage_client = storage.Client()
 bucket = storage_client.bucket(BUCKET_NAME)
 blob = bucket.blob(LABEL_ENCODER_PATH)
